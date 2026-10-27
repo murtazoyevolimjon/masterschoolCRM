@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  /* "base" deb nomlanmaydi: Tailwind'dagi `text-base` (shrift o'lchami) bilan to'qnashadi */
+  --color-canvas: #0c1321;
+  --color-lowest: #070e1c;
+  --color-low: #151b2a;
+  --color-high: #1d2538;
+  --color-card: #232c42;
+
+  --color-primary: #06b6d4;
+  --color-electric: #2563eb;
+  --color-ai: #8b5cf6;
+  --color-ai-soft: #a855f7;
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* Asosiy matn rangi va "shaffof qatlam" rangi: tungi rejimda och, kunduzgida to'q */
+  --color-fg: #e6eaf5;
+
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-accent: rgba(6, 182, 212, 0.15);
+
+  --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.25);
+  --shadow-glow-ai: 0 0 20px rgba(139, 92, 246, 0.35);
+
+  --spacing-sidebar: 18rem;
+}
+
+html {
+  color-scheme: dark;
+}
+
+/*
+ * Kunduzgi (och) rejim: faqat o'zgaruvchilar qayta belgilanadi, komponentlar o'zgarmaydi.
+ * Tailwind'ning slate ranglari ham shu yerda teskari tartibda qo'yilgan (och matn -> to'q matn).
+ * Brend (btn-primary) va to'q fon ustidagi (video, AI PRO) oq matn o'zgarmaydi.
+ */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-canvas: #f4f7fb;
+  --color-lowest: #ffffff;
+  --color-low: #eef2f8;
+  --color-high: #ffffff;
+  --color-card: #e2e8f0;
+
+  --color-primary: #0b6a83;
+  --color-ai: #7c3aed;
+  --color-ai-soft: #9333ea;
+  --color-success: #036b4d;
+  --color-warning: #964205;
+  --color-danger: #b91c1c;
+
+  --color-fg: #0f172a;
+  --color-line: rgba(15, 23, 42, 0.12);
+  --color-line-accent: rgba(14, 116, 144, 0.28);
+
+  --shadow-glow: 0 4px 16px rgba(14, 116, 144, 0.18);
+  --shadow-glow-ai: 0 4px 16px rgba(124, 58, 237, 0.22);
+
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #475569;
+  --color-slate-500: #566377;
+  --color-slate-600: #94a3b8;
+  --color-violet-200: #6d28d9;
+  --color-violet-300: #6d28d9;
+  --color-sky-300: #0369a1;
+  --color-cyan-50: #0c4a6e;
+}
+
+[data-theme="light"] .card {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle futuristic backdrop */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 30rem at 85% -10%, rgba(6, 182, 212, 0.1), transparent 60%),
+    radial-gradient(50rem 30rem at -10% 110%, rgba(37, 99, 235, 0.1), transparent 60%);
+}
+
+::selection {
+  background: rgba(6, 182, 212, 0.35);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--color-fg) 22%, transparent) transparent;
+}
+
+@utility card {
+  background: var(--color-high);
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+}
+
+@utility btn-primary {
+  background-image: linear-gradient(135deg, #06b6d4, #2563eb);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: var(--shadow-glow);
+  transition: filter 0.15s, transform 0.15s;
+  &:hover {
+    filter: brightness(1.1);
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: var(--len, 1200);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.35s ease-out both;
+}
