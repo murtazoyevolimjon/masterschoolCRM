@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const MAX_TRIES = 5;
 const LOCK_SECONDS = 30;
+const LOCK_KEY = "toyloq-login-lock";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,6 +36,14 @@ export default function LoginPage() {
     const user = resolveUser(useDb.getState(), session);
     if (user) router.replace(roleHome[user.role]);
   }, [ready, session, router]);
+
+  // Blokirovka sahifa yangilanganda ham saqlanib qolishi uchun localStorage'da turadi
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem(LOCK_KEY) ?? 0);
+      if (saved > Date.now()) { setNow(Date.now()); setLockedUntil(saved); }
+    } catch { /* localStorage yopiq bo'lsa — faqat xotiradagi blokirovka ishlaydi */ }
+  }, []);
 
   useEffect(() => {
     if (!lockedUntil) return;
@@ -58,8 +67,10 @@ export default function LoginPage() {
     setPassword("");
     if (n >= MAX_TRIES) {
       setTries(0);
+      const until = Date.now() + LOCK_SECONDS * 1000;
       setNow(Date.now());
-      setLockedUntil(Date.now() + LOCK_SECONDS * 1000);
+      setLockedUntil(until);
+      try { localStorage.setItem(LOCK_KEY, String(until)); } catch { /* e'tiborsiz */ }
       setError(t("Juda ko'p urinish. {n} soniyadan keyin qayta urinib ko'ring", { n: LOCK_SECONDS }));
     } else {
       setTries(n);

@@ -28,7 +28,7 @@ export function AdminSearch() {
       ...groups.filter((g) => g.name.toLowerCase().includes(needle))
         .map((g) => ({ key: g.id, label: g.name, sub: `${t("Guruh")} · ${t(g.days)} ${g.time}`, href: "/admin/guruhlar", icon: Layers })),
       ...teachers.filter((x) => x.name.toLowerCase().includes(needle))
-        .map((x) => ({ key: x.id, label: x.name, sub: `${t("Ustoz")} · ${x.specialty}`, href: "/admin/ustozlar", icon: GraduationCap })),
+        .map((x) => ({ key: x.id, label: x.name, sub: x.specialty ? `${t("Ustoz")} · ${x.specialty}` : t("Ustoz"), href: "/admin/ustozlar", icon: GraduationCap })),
     ].slice(0, 8);
   }, [q, students, groups, teachers]);
 

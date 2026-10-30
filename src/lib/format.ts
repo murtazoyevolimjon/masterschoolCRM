@@ -50,7 +50,12 @@ export const weekdayNames = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", 
 
 export const weekday = (iso: string) => new Date(`${iso}T00:00:00`).getDay();
 
-export const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+/** Tasodifiy id (parol tuzi sifatida ham ishlatiladi, shuning uchun `Math.random` emas, `crypto`). */
+export function uid() {
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("") + Date.now().toString(36).slice(-4);
+}
 
 export function downloadFile(filename: string, content: string, type: string) {
   const blob = new Blob(["﻿" + content], { type });

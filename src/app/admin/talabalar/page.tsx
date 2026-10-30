@@ -7,7 +7,7 @@ import { CredentialsModal } from "@/components/admin/CredentialsModal";
 import { Avatar, Badge, Button, Card, PageHeader, TableWrap, td, th, type Tone } from "@/components/ui/primitives";
 import { EmptyRow, FilterSelect, RowActions, SearchInput, useDeleter, useListSearch } from "@/components/ui/crud";
 import { PaymentForm, StudentForm } from "@/components/admin/forms";
-import { useDb, type Student, type StudentStatus } from "@/lib/db";
+import { indexById, paidByStudent, useDb, type Student, type StudentStatus } from "@/lib/db";
 import { downloadCSV, formatDate, money, monthKey, todayISO } from "@/lib/format";
 
 const statusTone: Record<StudentStatus, Tone> = { Faol: "success", "Sinov darsi": "warning", Kutilmoqda: "muted" };
@@ -27,8 +27,11 @@ export default function StudentsPage() {
   const { ask, dialog } = useDeleter();
 
   const month = monthKey(todayISO());
-  const groupName = (id: string) => groups.find((g) => g.id === id)?.name ?? "—";
-  const courseOf = (id: string) => courses.find((c) => c.id === id);
+  const groupsById = useMemo(() => indexById(groups), [groups]);
+  const coursesById = useMemo(() => indexById(courses), [courses]);
+  const paidMap = useMemo(() => paidByStudent(payments, month), [payments, month]);
+  const groupName = (id: string) => groupsById.get(id)?.name ?? "—";
+  const courseOf = (id: string) => coursesById.get(id);
 
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -41,7 +44,7 @@ export default function StudentsPage() {
   function payState(s: Student) {
     if (s.status !== "Faol") return <span className="text-slate-500">—</span>;
     const fee = courseOf(s.courseId)?.price ?? 0;
-    const paid = payments.filter((p) => p.studentId === s.id && p.date.startsWith(month)).reduce((a, p) => a + p.amount, 0);
+    const paid = paidMap.get(s.id) ?? 0;
     if (paid >= fee) return <Badge tone="success">To&apos;langan</Badge>;
     if (paid > 0) return <Badge tone="warning">Qisman · {money(fee - paid)}</Badge>;
     return <Badge tone="danger">Qarz · {money(fee)}</Badge>;

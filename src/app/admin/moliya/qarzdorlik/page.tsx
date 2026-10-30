@@ -6,7 +6,7 @@ import { AlertTriangle, Banknote, Users, Wallet } from "lucide-react";
 import { Avatar, Badge, Button, Card, PageHeader, StatCard, TableWrap, td, th, inputCls } from "@/components/ui/primitives";
 import { EmptyRow, SearchInput } from "@/components/ui/crud";
 import { PaymentForm } from "@/components/admin/forms";
-import { debtsFor, useDb } from "@/lib/db";
+import { debtsFor, indexById, useDb } from "@/lib/db";
 import { money, monthKey, monthLabel, todayISO } from "@/lib/format";
 
 export default function DebtsPage() {
@@ -17,6 +17,7 @@ export default function DebtsPage() {
   const [month, setMonth] = useState(() => monthKey(todayISO()));
   const [q, setQ] = useState("");
   const [pay, setPay] = useState<{ open: boolean; studentId?: string; amount?: number }>({ open: false });
+  const groupsById = useMemo(() => indexById(groups), [groups]);
 
   const all = useMemo(() => debtsFor({ students, courses, payments }, month), [students, courses, payments, month]);
   const debtors = all.filter((r) => r.debt > 0).sort((a, b) => b.debt - a.debt);
@@ -48,7 +49,7 @@ export default function DebtsPage() {
               <tr key={s.id} className="hover:bg-fg/[0.02]">
                 <td className={td}><div className="flex items-center gap-3"><Avatar name={s.name} size="sm" /><span className="font-semibold">{s.name}</span></div></td>
                 <td className={`${td} whitespace-nowrap text-slate-300`}>{s.phone}</td>
-                <td className={td}>{course?.name}<span className="block text-xs text-slate-500">{groups.find((g) => g.id === s.groupId)?.name ?? t("Guruhsiz")}</span></td>
+                <td className={td}>{course?.name}<span className="block text-xs text-slate-500">{groupsById.get(s.groupId)?.name ?? t("Guruhsiz")}</span></td>
                 <td className={`${td} whitespace-nowrap`}>{money(fee)}</td>
                 <td className={`${td} whitespace-nowrap`}>{paid > 0 ? <Badge tone="warning">{money(paid)}</Badge> : <span className="text-slate-500">0</span>}</td>
                 <td className={`${td} whitespace-nowrap font-extrabold text-danger`}>{money(debt)}</td>

@@ -20,7 +20,15 @@ export function StoreHydrator() {
       .then(() => useLang.persist.rehydrate())
       .then(() => useAuth.persist.rehydrate())
       .finally(() => useAuth.setState({ ready: true }));
-    return unsub;
+
+    // Boshqa oynada (tabda) o'zgargan ma'lumotni olamiz — aks holda eski nusxa yangisini ustidan yozib yuboradi
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "toyloq-db-v1") void useDb.persist.rehydrate();
+      else if (e.key === "toyloq-session-v1") void useAuth.persist.rehydrate();
+      else if (e.key === "toyloq-notices-v1") void useNoticeRead.persist.rehydrate();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => { unsub(); window.removeEventListener("storage", onStorage); };
   }, []);
   return null;
 }

@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { Badge, Button, Card, PageHeader, Progress, TableWrap, td, th } from "@/components/ui/primitives";
 import { EmptyRow, FilterSelect, RowActions, SearchInput, useDeleter, useListSearch } from "@/components/ui/crud";
 import { GroupForm } from "@/components/admin/forms";
-import { useDb, type Group } from "@/lib/db";
+import { countBy, indexById, useDb, type Group } from "@/lib/db";
 
 export default function GroupsPage() {
   const groups = useDb((s) => s.groups);
@@ -24,6 +24,11 @@ export default function GroupsPage() {
     return groups.filter((g) => (!courseId || g.courseId === courseId) && (!t || g.name.toLowerCase().includes(t)));
   }, [groups, q, courseId]);
 
+  const coursesById = useMemo(() => indexById(courses), [courses]);
+  const teachersById = useMemo(() => indexById(teachers), [teachers]);
+  const roomsById = useMemo(() => indexById(rooms), [rooms]);
+  const studentCount = useMemo(() => countBy(students, (s) => s.groupId), [students]);
+
   return (
     <>
       <PageHeader
@@ -40,15 +45,15 @@ export default function GroupsPage() {
           <thead><tr>{["Guruh", "Kurs", "Ustoz", "Xona", "Jadval", "To'lish darajasi", "Holati", ""].map((h, i) => <th key={i} className={th}>{t(h)}</th>)}</tr></thead>
           <tbody>
             {rows.map((g) => {
-              const room = rooms.find((r) => r.id === g.roomId);
-              const count = students.filter((s) => s.groupId === g.id).length;
+              const room = roomsById.get(g.roomId);
+              const count = studentCount.get(g.id) ?? 0;
               const cap = room?.capacity ?? 0;
               const pct = cap ? Math.round((count / cap) * 100) : 0;
               return (
                 <tr key={g.id} className="hover:bg-fg/[0.02]">
                   <td className={`${td} font-extrabold`}>{g.name}</td>
-                  <td className={td}>{courses.find((c) => c.id === g.courseId)?.name ?? "—"}</td>
-                  <td className={`${td} whitespace-nowrap`}>{teachers.find((t) => t.id === g.teacherId)?.name ?? "—"}</td>
+                  <td className={td}>{coursesById.get(g.courseId)?.name ?? "—"}</td>
+                  <td className={`${td} whitespace-nowrap`}>{teachersById.get(g.teacherId)?.name ?? "—"}</td>
                   <td className={td}>{room?.name ?? "—"}</td>
                   <td className={`${td} whitespace-nowrap text-slate-300`}>{t(g.days)} · {g.time}</td>
                   <td className={`${td} min-w-40`}>

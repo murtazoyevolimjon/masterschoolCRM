@@ -7,7 +7,7 @@ import { CredentialsModal } from "@/components/admin/CredentialsModal";
 import { Avatar, Badge, Button, Card, PageHeader, TableWrap, td, th } from "@/components/ui/primitives";
 import { EmptyRow, RowActions, SearchInput, useDeleter, useListSearch } from "@/components/ui/crud";
 import { TeacherForm } from "@/components/admin/forms";
-import { useDb, type Teacher } from "@/lib/db";
+import { countBy, useDb, type Teacher } from "@/lib/db";
 import { money } from "@/lib/format";
 
 export default function TeachersPage() {
@@ -24,6 +24,19 @@ export default function TeachersPage() {
     return teachers.filter((x) => !t || x.name.toLowerCase().includes(t) || x.specialty.toLowerCase().includes(t));
   }, [teachers, q]);
 
+  // Ustoz -> guruhlari va talabalari soni (har qatorda qayta filtrlamaslik uchun bir marta hisoblanadi)
+  const byTeacher = useMemo(() => {
+    const perGroup = countBy(students, (s) => s.groupId);
+    const map = new Map<string, { names: string[]; students: number }>();
+    for (const g of groups) {
+      const e = map.get(g.teacherId) ?? { names: [], students: 0 };
+      e.names.push(g.name);
+      e.students += perGroup.get(g.id) ?? 0;
+      map.set(g.teacherId, e);
+    }
+    return map;
+  }, [groups, students]);
+
   return (
     <>
       <PageHeader
@@ -37,15 +50,14 @@ export default function TeachersPage() {
           <thead><tr>{["Ustoz", "Telefon", "Yo'nalish", "Guruhlar", "Talabalar", "Oylik maosh", "Holati", "Kirish", ""].map((h, i) => <th key={i} className={th}>{t(h)}</th>)}</tr></thead>
           <tbody>
             {rows.map((tc) => {
-              const own = groups.filter((g) => g.teacherId === tc.id);
-              const count = students.filter((s) => own.some((g) => g.id === s.groupId)).length;
+              const own = byTeacher.get(tc.id) ?? { names: [], students: 0 };
               return (
                 <tr key={tc.id} className="hover:bg-fg/[0.02]">
                   <td className={td}><div className="flex items-center gap-3"><Avatar name={tc.name} size="sm" /><span className="font-semibold">{tc.name}</span></div></td>
                   <td className={`${td} whitespace-nowrap text-slate-300`}>{tc.phone}</td>
-                  <td className={td}>{tc.specialty}</td>
-                  <td className={td}>{own.length > 0 ? own.map((g) => g.name).join(", ") : <span className="text-slate-500">—</span>}</td>
-                  <td className={td}>{count}</td>
+                  <td className={td}>{tc.specialty || <span className="text-slate-500">—</span>}</td>
+                  <td className={td}>{own.names.length > 0 ? own.names.join(", ") : <span className="text-slate-500">—</span>}</td>
+                  <td className={td}>{own.students}</td>
                   <td className={`${td} whitespace-nowrap font-semibold`}>{money(tc.salary)} {t("so'm")}</td>
                   <td className={td}><Badge tone={tc.active ? "success" : "muted"}>{tc.active ? "Faol" : "Nofaol"}</Badge></td>
                   <td className={td}>{tc.cred ? <Badge tone="info"><KeyRound className="size-3" /> {tc.cred.login}</Badge> : <span className="text-xs text-slate-500">{t("Berilmagan")}</span>}</td>

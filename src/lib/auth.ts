@@ -79,6 +79,21 @@ export function generatePassword(length = 8) {
   return Array.from(buf, (n) => chars[n % chars.length]).join("");
 }
 
+/** Faqat raqamlardan iborat tasodifiy parol (masalan, 6 xonali). */
+export function generatePin(length = 6) {
+  const buf = new Uint32Array(length);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, (n) => n % 10).join("");
+}
+
+/** Ism-familiyadan bo'sh (band bo'lmagan) login taklif qiladi. */
+export function randomLogin(db: DbData, first: string, last: string) {
+  const base = suggestLogin(`${first} ${last}`).replace(/\./g, "_") || "ustoz";
+  let login = base;
+  while (login.length < 3 || loginTaken(db, login)) login = `${base}${Math.floor(Math.random() * 900 + 100)}`;
+  return login;
+}
+
 /* ───────── Sessiya ───────── */
 
 type AuthState = {
@@ -124,7 +139,7 @@ export function resolveUser(db: DbData, session: Session | null): SessionUser | 
   }
   if (session.role === "teacher") {
     const t = db.teachers.find((x) => x.id === session.id);
-    return t?.cred && t.active ? { role: "teacher", id: t.id, name: t.name, sub: t.specialty, initials: initialsOf(t.name), teacher: t } : null;
+    return t?.cred && t.active ? { role: "teacher", id: t.id, name: t.name, sub: t.specialty || "Ustoz", initials: initialsOf(t.name), teacher: t } : null;
   }
   const s = db.students.find((x) => x.id === session.id);
   return s?.cred ? { role: "student", id: s.id, name: s.name, sub: s.status, initials: initialsOf(s.name), student: s } : null;

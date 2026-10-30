@@ -189,7 +189,13 @@ export const useDb = create<DbData & Actions>()(
         }),
 
       updateSettings: (settings) => set({ settings }),
-      reset: () => set(buildSeed()),
+      // Admin hisobi (login/parol) demo ma'lumotlar bilan birga standartga qaytmaydi
+      reset: () =>
+        set((s) => {
+          const { adminName, adminLogin, adminSalt, adminHash } = s.settings;
+          const seed = buildSeed();
+          return { ...seed, settings: { ...seed.settings, adminName, adminLogin, adminSalt, adminHash } };
+        }),
     }),
     {
       // Kalit nomi o'zgartirilmagan: aks holda brauzerda saqlangan barcha ma'lumot yo'qolardi
@@ -224,6 +230,23 @@ export function deleteBlocker(s: DbData, k: keyof Collections, id: string): stri
 export const sumPaid = (payments: Payment[], studentId: string, month: string) =>
   payments.filter((p) => p.studentId === studentId && p.date.startsWith(month)).reduce((a, p) => a + p.amount, 0);
 
+/** Oy uchun talaba -> to'langan summa. To'lovlar bir marta aylanadi (har talaba uchun `sumPaid` chaqirish o'rniga). */
+export function paidByStudent(payments: Payment[], month: string) {
+  const paid = new Map<string, number>();
+  for (const p of payments) if (p.date.startsWith(month)) paid.set(p.studentId, (paid.get(p.studentId) ?? 0) + p.amount);
+  return paid;
+}
+
+/** id bo'yicha tezkor qidiruv uchun jadval (ro'yxatda `find` ni takrorlamaslik uchun). */
+export const indexById = <T extends { id: string }>(list: T[]) => new Map(list.map((x) => [x.id, x]));
+
+/** Guruh bo'yicha talabalar soni. */
+export function countBy<T>(list: T[], key: (x: T) => string) {
+  const counts = new Map<string, number>();
+  for (const x of list) counts.set(key(x), (counts.get(key(x)) ?? 0) + 1);
+  return counts;
+}
+
 /** Talaba uchun o'yinlashtirish ko'rsatkichlari: davomatdan hisoblanadi. */
 export function studentStats(attendance: Record<string, AttStatus>, studentId: string) {
   const mine = Object.entries(attendance)
@@ -241,12 +264,14 @@ export type DebtRow = { student: Student; course?: Course; fee: number; paid: nu
 
 /** Berilgan oy uchun qarzdorlik: faol talabalar oylik to'lovi va tushgan summa farqi. */
 export function debtsFor(db: Pick<DbData, "students" | "courses" | "payments">, month: string): DebtRow[] {
+  const courses = indexById(db.courses);
+  const paidMap = paidByStudent(db.payments, month);
   return db.students
     .filter((s) => s.status === "Faol" && s.createdAt.slice(0, 7) <= month)
     .map((student) => {
-      const course = db.courses.find((c) => c.id === student.courseId);
+      const course = courses.get(student.courseId);
       const fee = course?.price ?? 0;
-      const paid = sumPaid(db.payments, student.id, month);
+      const paid = paidMap.get(student.id) ?? 0;
       return { student, course, fee, paid, debt: Math.max(fee - paid, 0) };
     });
 }

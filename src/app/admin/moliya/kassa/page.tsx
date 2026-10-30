@@ -1,12 +1,12 @@
 "use client";
 
 import { t } from "@/lib/i18n";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Banknote, CreditCard, Download, Plus, Receipt, Wallet } from "lucide-react";
 import { Badge, Button, Card, PageHeader, StatCard, TableWrap, td, th, inputCls } from "@/components/ui/primitives";
 import { EmptyRow, FilterSelect, RowActions, SearchInput, useDeleter } from "@/components/ui/crud";
 import { PaymentForm } from "@/components/admin/forms";
-import { useDb, type Payment } from "@/lib/db";
+import { indexById, useDb, type Payment } from "@/lib/db";
 import { downloadCSV, formatDate, money, monthKey, monthLabel, todayISO } from "@/lib/format";
 
 export default function CashPage() {
@@ -18,19 +18,19 @@ export default function CashPage() {
   const [form, setForm] = useState<{ open: boolean; item?: Payment }>({ open: false });
   const { ask, dialog } = useDeleter();
 
-  const nameOf = (id: string) => students.find((s) => s.id === id)?.name ?? t("O'chirilgan talaba");
+  const studentsById = useMemo(() => indexById(students), [students]);
+  const nameOf = useCallback((id: string) => studentsById.get(id)?.name ?? t("O'chirilgan talaba"), [studentsById]);
 
   const rows = useMemo(() => {
-    const t = q.trim().toLowerCase();
+    const needle = q.trim().toLowerCase();
     return payments
       .filter((p) => (!month || p.date.startsWith(month)) && (!method || p.method === method))
-      .filter((p) => !t || nameOf(p.studentId).toLowerCase().includes(t))
+      .filter((p) => !needle || nameOf(p.studentId).toLowerCase().includes(needle))
       .sort((a, b) => b.date.localeCompare(a.date));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payments, students, month, method, q]);
+  }, [payments, nameOf, month, method, q]);
 
   const total = rows.reduce((a, p) => a + p.amount, 0);
-  const byMethod = (m: string) => rows.filter((p) => p.method === m).reduce((a, p) => a + p.amount, 0);
+  const cash = rows.reduce((a, p) => a + (p.method === "Naqd" ? p.amount : 0), 0);
 
   return (
     <>
@@ -51,8 +51,8 @@ export default function CashPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Jami tushum" value={`${money(total)}`} delta="so'm" icon={Wallet} tone="success" />
         <StatCard label="To'lovlar soni" value={`${rows.length} ta`} delta={rows.length ? `O'rtacha ${money(total / rows.length)} so'm` : "—"} icon={Receipt} />
-        <StatCard label="Naqd" value={money(byMethod("Naqd"))} delta="so'm" icon={Banknote} tone="warning" />
-        <StatCard label="Karta / Click / Payme" value={money(total - byMethod("Naqd"))} delta="so'm" icon={CreditCard} tone="ai" />
+        <StatCard label="Naqd" value={money(cash)} delta="so'm" icon={Banknote} tone="warning" />
+        <StatCard label="Karta / Click / Payme" value={money(total - cash)} delta="so'm" icon={CreditCard} tone="ai" />
       </div>
 
       <Card>

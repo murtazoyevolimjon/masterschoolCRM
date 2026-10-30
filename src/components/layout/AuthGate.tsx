@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Zap } from "lucide-react";
-import { useAuth, useSessionUser } from "@/lib/auth";
+import { roleHome, useAuth, useSessionUser } from "@/lib/auth";
 import type { Role } from "@/lib/nav";
 
 /** Panelni faqat tegishli rolga ochadi; aks holda kirish sahifasiga qaytaradi. */
@@ -16,10 +16,12 @@ export function AuthGate({ role, children }: { role: Role; children: React.React
 
   useEffect(() => {
     if (!ready || allowed) return;
+    // Boshqa rol paneli ochilsa — foydalanuvchini o'z paneliga qaytaramiz (tizimdan chiqarmaymiz)
+    if (user) return router.replace(roleHome[user.role]);
     // Hisob o'chirilgan/bloklangan bo'lsa sessiyani ham tozalaymiz
     if (session) useAuth.getState().signOut();
     router.replace("/");
-  }, [ready, allowed, session, router]);
+  }, [ready, allowed, user, session, router]);
 
   if (!ready || !allowed) {
     return (
