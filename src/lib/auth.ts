@@ -33,8 +33,9 @@ export function adminCred(db: Pick<DbData, "settings">): Cred {
 
 export const usesDefaultAdminPassword = (db: Pick<DbData, "settings">) => adminCred(db).hash === DEFAULT_ADMIN.hash;
 
+/** Nusxalashda parol oxiriga tushib qolgan bo'sh joy kirishga to'sqinlik qilmasin: avval aynan, so'ng trim bilan tekshiriladi. */
 const matches = (c: Cred | undefined, login: string, password: string) =>
-  !!c && c.login === login && c.hash === hashPassword(c.salt, password);
+  !!c && c.login === login && (c.hash === hashPassword(c.salt, password) || c.hash === hashPassword(c.salt, password.trim()));
 
 export type AuthResult = { ok: true; session: Session } | { ok: false; error: string };
 
