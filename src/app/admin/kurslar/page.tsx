@@ -1,12 +1,12 @@
 "use client";
 
 import { t } from "@/lib/i18n";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BookOpen, Clock, Layers, Plus, Users } from "lucide-react";
 import { Button, Card, PageHeader } from "@/components/ui/primitives";
 import { EmptyState, RowActions, useDeleter } from "@/components/ui/crud";
 import { CourseForm } from "@/components/admin/forms";
-import { useDb, type Course } from "@/lib/db";
+import { countBy, useDb, type Course } from "@/lib/db";
 import { money } from "@/lib/format";
 
 export default function CoursesPage() {
@@ -15,6 +15,8 @@ export default function CoursesPage() {
   const students = useDb((s) => s.students);
   const [form, setForm] = useState<{ open: boolean; item?: Course }>({ open: false });
   const { ask, dialog } = useDeleter();
+  const groupCount = useMemo(() => countBy(groups, (g) => g.courseId), [groups]);
+  const studentCount = useMemo(() => countBy(students, (s) => s.courseId), [students]);
 
   return (
     <>
@@ -38,7 +40,7 @@ export default function CoursesPage() {
             <p className="text-2xl font-extrabold text-primary">{money(c.price)} <span className="text-sm font-semibold text-slate-400">{t("so'm / oy")}</span></p>
             <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-3 text-xs text-slate-400">
               <span className="flex items-center gap-1.5"><Clock className="size-3.5" /> {t("{n} oy", { n: c.months })}</span>
-              <span className="flex items-center gap-1.5"><Layers className="size-3.5" /> {t("{n} guruh", { n: groups.filter((g) => g.courseId === c.id).length })}</span>
+              <span className="flex items-center gap-1.5"><Layers className="size-3.5" /> {t("{n} guruh", { n: groupCount.get(c.id) ?? 0 })}</span>
               <span className="flex items-center gap-1.5"><Users className="size-3.5" /> {t("{n} talaba", { n: students.filter((s) => s.courseId === c.id).length })}</span>
             </div>
           </Card>

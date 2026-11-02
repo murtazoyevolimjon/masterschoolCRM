@@ -5,33 +5,47 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { AlertTriangle, Bot, CalendarX, Sparkles, Users } from "lucide-react";
 import { Badge, Button, Card, CardTitle, PageHeader } from "@/components/ui/primitives";
-import { debtsFor, useDb } from "@/lib/db";
+import { countBy, debtsFor, indexById, useDb } from "@/lib/db";
 import { money, monthKey, todayISO } from "@/lib/format";
 import { useUi } from "@/lib/store";
 
 export default function AiPage() {
-  const db = useDb();
+  const students = useDb((s) => s.students);
+  const courses = useDb((s) => s.courses);
+  const payments = useDb((s) => s.payments);
+  const groups = useDb((s) => s.groups);
+  const rooms = useDb((s) => s.rooms);
+  const attendance = useDb((s) => s.attendance);
   const setAi = useUi((s) => s.setAi);
 
   const insights = useMemo(() => {
-    const debt = debtsFor(db, monthKey(todayISO())).filter((r) => r.debt > 0);
+    const debt = debtsFor({ students, courses, payments }, monthKey(todayISO())).filter((r) => r.debt > 0);
     const totalDebt = debt.reduce((a, r) => a + r.debt, 0);
 
-    // Guruhlar bo'yicha davomat foizi
-    const lowAtt = db.groups.map((g) => {
-      const recs = Object.entries(db.attendance).filter(([k]) => k.startsWith(`${g.id}|`)).map(([, v]) => v);
-      const ok = recs.filter((v) => v === "present" || v === "late").length;
-      return { g, rate: recs.length ? Math.round((ok / recs.length) * 100) : null };
+    // Guruhlar bo'yicha davomat: butun yozuvlar bir marta aylanadi (har guruh uchun qayta emas)
+    const stat = new Map<string, { all: number; ok: number }>();
+    for (const key in attendance) {
+      const gid = key.slice(0, key.indexOf("|"));
+      const e = stat.get(gid) ?? { all: 0, ok: 0 };
+      e.all++;
+      if (attendance[key] === "present" || attendance[key] === "late") e.ok++;
+      stat.set(gid, e);
+    }
+    const lowAtt = groups.map((g) => {
+      const e = stat.get(g.id);
+      return { g, rate: e ? Math.round((e.ok / e.all) * 100) : null };
     }).filter((x) => x.rate !== null && x.rate < 90).sort((a, b) => a.rate! - b.rate!);
 
-    const waiting = db.students.filter((s) => s.status === "Kutilmoqda");
-    const free = db.groups.filter((g) => g.active).map((g) => {
-      const cap = db.rooms.find((r) => r.id === g.roomId)?.capacity ?? 0;
-      return { g, left: cap - db.students.filter((s) => s.groupId === g.id).length };
+    const waiting = students.filter((s) => s.status === "Kutilmoqda");
+    const roomsById = indexById(rooms);
+    const perGroup = countBy(students, (s) => s.groupId);
+    const free = groups.filter((g) => g.active).map((g) => {
+      const cap = roomsById.get(g.roomId)?.capacity ?? 0;
+      return { g, left: cap - (perGroup.get(g.id) ?? 0) };
     }).filter((x) => x.left > 0).sort((a, b) => b.left - a.left);
 
     return { debt, totalDebt, lowAtt, waiting, free };
-  }, [db]);
+  }, [students, courses, payments, groups, rooms, attendance]);
 
   return (
     <>

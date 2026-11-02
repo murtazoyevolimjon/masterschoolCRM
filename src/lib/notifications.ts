@@ -54,7 +54,8 @@ export function buildNotices(db: Data, user: SessionUser, today: string, nowHM: 
 
     const lessons = todayLessons(db.groups);
     const marked = groupsMarkedOn(db.attendance, today);
-    const open = lessons.filter((g) => g.time <= nowHM && !marked.has(g.id) && db.students.some((s) => s.groupId === g.id && s.status !== "Kutilmoqda"));
+    const withStudents = new Set(db.students.filter((s) => s.status !== "Kutilmoqda").map((s) => s.groupId));
+    const open = lessons.filter((g) => g.time <= nowHM && !marked.has(g.id) && withStudents.has(g.id));
     if (open.length > 0) {
       out.push({
         id: `att:${today}:${open.map((g) => g.id).join(",")}`, tone: "warning", title: t("Davomat belgilanmagan"), href: "/admin/davomat",

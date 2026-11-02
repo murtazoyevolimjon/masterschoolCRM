@@ -9,7 +9,7 @@ import { Avatar, Badge, Button, Card, CardTitle, PageHeader, StatCard, TableWrap
 import { RevenueChart } from "@/components/charts/RevenueChart";
 import { Donut } from "@/components/charts/Donut";
 import { GroupForm, PaymentForm, StudentForm } from "@/components/admin/forms";
-import { dayNumbers, useDb, type StudentStatus } from "@/lib/db";
+import { countBy, dayNumbers, indexById, useDb, type StudentStatus } from "@/lib/db";
 import { formatDate, lastMonths, millions, money, monthKey, todayISO, weekday } from "@/lib/format";
 
 const monthShort = ["Yan", "Fev", "Mar", "Apr", "May", "Iyn", "Iyl", "Avg", "Sen", "Okt", "Noy", "Dek"];
@@ -54,6 +54,12 @@ export default function AdminDashboard() {
   const activeGroups = groups.filter((g) => g.active);
   const activeTeachers = teachers.filter((t) => t.active).length;
   const recent = [...students].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
+
+  const coursesById = useMemo(() => indexById(courses), [courses]);
+  const groupsById = useMemo(() => indexById(groups), [groups]);
+  const roomsById = useMemo(() => indexById(rooms), [rooms]);
+  const teachersById = useMemo(() => indexById(teachers), [teachers]);
+  const studentCount = useMemo(() => countBy(students, (s) => s.groupId), [students]);
 
   const todays = activeGroups
     .filter((g) => dayNumbers[g.days].includes(weekday(today)))
@@ -133,8 +139,8 @@ export default function AdminDashboard() {
                 <tr key={s.id} className="hover:bg-fg/[0.02]">
                   <td className={td}><div className="flex items-center gap-3"><Avatar name={s.name} size="sm" /><span className="whitespace-nowrap font-semibold">{s.name}</span></div></td>
                   <td className={`${td} whitespace-nowrap text-slate-300`}>{s.phone}</td>
-                  <td className={td}>{courses.find((c) => c.id === s.courseId)?.name ?? "—"}</td>
-                  <td className={`${td} text-slate-300`}>{groups.find((g) => g.id === s.groupId)?.name ?? "—"}</td>
+                  <td className={td}>{coursesById.get(s.courseId)?.name ?? "—"}</td>
+                  <td className={`${td} text-slate-300`}>{groupsById.get(s.groupId)?.name ?? "—"}</td>
                   <td className={`${td} whitespace-nowrap text-slate-400`}>{formatDate(s.createdAt)}</td>
                   <td className={td}><Badge tone={statusTone[s.status]}>{s.status}</Badge></td>
                 </tr>
@@ -150,15 +156,15 @@ export default function AdminDashboard() {
           ) : (
             <ul className="space-y-3">
               {todays.map((g) => {
-                const room = rooms.find((r) => r.id === g.roomId);
+                const room = roomsById.get(g.roomId);
                 return (
                   <li key={g.id} className="flex items-center gap-4 rounded-xl border border-line bg-low p-3">
                     <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-center text-[11px] font-extrabold leading-tight text-primary">{room?.name}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-bold">{courses.find((c) => c.id === g.courseId)?.name}</p>
-                      <p className="truncate text-xs text-slate-400">{g.time} · {g.name} · {teachers.find((t) => t.id === g.teacherId)?.name}</p>
+                      <p className="truncate font-bold">{coursesById.get(g.courseId)?.name}</p>
+                      <p className="truncate text-xs text-slate-400">{g.time} · {g.name} · {teachersById.get(g.teacherId)?.name}</p>
                     </div>
-                    <Badge tone="info">{t("{n} o'quvchi", { n: students.filter((s) => s.groupId === g.id).length })}</Badge>
+                    <Badge tone="info">{t("{n} o'quvchi", { n: studentCount.get(g.id) ?? 0 })}</Badge>
                   </li>
                 );
               })}
